@@ -5,6 +5,16 @@ VERSION="0.1.0"
 REPOSITORY_URL="https://github.com/ItzSevrus/forgeRepo"
 REPOSITORY_BRANCH="master"
 
+# Global so the EXIT trap can still see it after functions return.
+TEMP_DIR=""
+
+cleanup_temp() {
+    if [[ -n "${TEMP_DIR:-}" && -d "$TEMP_DIR" ]]; then
+        rm -rf -- "$TEMP_DIR"
+    fi
+}
+trap cleanup_temp EXIT
+
 die() {
     printf 'forge-dev: error: %s\n' "$*" >&2
     exit 1
@@ -73,7 +83,6 @@ find_repo_root() {
 # forge-dev repo init
 # ------------------------------------------------------------
 
-
 repo_init() {
     require git
     require gh
@@ -82,7 +91,7 @@ repo_init() {
     require basename
 
     local destination="${1:-}"
-    local temp repo_name visibility answer
+    local repo_name visibility answer
 
     # GitHub CLI authentication is required.
     if ! gh auth status >/dev/null 2>&1; then
@@ -128,28 +137,27 @@ repo_init() {
             ;;
     esac
 
-    temp="$(mktemp -d "${TMPDIR:-/tmp}/forge-dev-repo.XXXXXX")"
-
-    trap "rm -rf -- '$temp'" RETURN
+    # Removed automatically by the EXIT trap, including on die().
+    TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/forge-dev-repo.XXXXXX")"
 
     info "fetching the official Forge repository template..."
 
     if ! git clone \
         --depth 1 \
         --branch "$REPOSITORY_BRANCH" \
-        "$REPOSITORY_URL" "$temp/source"; then
-        die "failed to clone $REPOSITORY_URL"
+        "$REPOSITORY_URL" "$TEMP_DIR/source"; then
+        die "failed to clone $REPOSITORY_URL (branch: $REPOSITORY_BRANCH)"
     fi
 
-    [[ -d "$temp/source/template" ]] ||
+    [[ -d "$TEMP_DIR/source/template" ]] ||
         die "the upstream repository does not contain template/"
 
     mkdir -p "$destination"
-    cp -a "$temp/source/template/." "$destination/"
+    cp -a "$TEMP_DIR/source/template/." "$destination/"
 
     # Initialize a clean repository with no upstream history.
     git -C "$destination" init
-    git -C "$destination" branch -M master
+    git -C "$destination" branch -M "$REPOSITORY_BRANCH"
 
     info "creating the initial commit..."
 
@@ -311,7 +319,7 @@ app_push() {
 
     local name="$1"
     local version="$2"
-    local root package_dir remote message branch
+    local root package_dir remote message branch answer
 
     valid_name "$name" || die "invalid application name: $name"
     valid_version "$version" || die "invalid version: $version"
