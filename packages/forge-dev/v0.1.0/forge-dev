@@ -139,9 +139,9 @@ repo_init() {
 
     if ! git clone \
         --depth 1 \
-        --branch "$REPOSITORY_BRANCH" \
+        --branch master \
         "$REPOSITORY_URL" "$temp/source"; then
-        die "failed to clone $REPOSITORY_URL"
+        die "failed to clone $REPOSITORY_URL (branch: master)"
     fi
 
     [[ -d "$temp/source/template" ]] ||
