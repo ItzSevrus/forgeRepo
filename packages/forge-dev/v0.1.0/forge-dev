@@ -3,7 +3,7 @@ set -Eeuo pipefail
 
 VERSION="0.1.0"
 REPOSITORY_URL="https://github.com/ItzSevrus/forgeRepo"
-REPOSITORY_BRANCH="main"
+REPOSITORY_BRANCH="master"
 
 die() {
     printf 'forge-dev: error: %s\n' "$*" >&2
