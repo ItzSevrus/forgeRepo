@@ -152,7 +152,7 @@ repo_init() {
 
     # Initialize a clean repository with no upstream history.
     git -C "$destination" init
-    git -C "$destination" branch -M main
+    git -C "$destination" branch -M master
 
     info "creating the initial commit..."
 
