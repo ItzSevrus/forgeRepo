@@ -1,13 +1,11 @@
-
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="$ROOT/build"
-PREFIX="$HOME/.local"
 
-ICON_DIR="$PREFIX/share/icons"
-DESKTOP_DIR="$PREFIX/share/applications"
+: "${FORGE_STAGE_DIR:?Forge staging directory is not set}"
+: "${FORGE_PREFIX:?Forge installation prefix is not set}"
 
 echo "==> Building WhatsApp C++"
 
@@ -16,36 +14,38 @@ cmake -S "$ROOT" -B "$BUILD_DIR" \
 
 cmake --build "$BUILD_DIR" --parallel "$(nproc)"
 
-echo "==> Installing executable"
+echo "==> Staging executable"
 
 install -Dm755 "$BUILD_DIR/whatsapp" \
-    "$PREFIX/bin/whatsapp-cpp"
+    "$FORGE_STAGE_DIR$FORGE_PREFIX/bin/whatsapp-cpp"
 
-echo "==> Installing icon"
+echo "==> Staging icon"
 
 install -Dm644 "$ROOT/whatsapp-cpp.png" \
-    "$ICON_DIR/whatsapp-cpp.png"
+    "$FORGE_STAGE_DIR$FORGE_PREFIX/share/icons/whatsapp-cpp.png"
 
 echo "==> Creating desktop entry"
 
-install -d "$DESKTOP_DIR"
+DESKTOP_FILE="$FORGE_STAGE_DIR$FORGE_PREFIX/share/applications/whatsapp-cpp.desktop"
 
-cat > "$DESKTOP_DIR/whatsapp-cpp.desktop" <<EOF
+install -d "$(dirname "$DESKTOP_FILE")"
+
+cat > "$DESKTOP_FILE" <<EOF
 [Desktop Entry]
 Type=Application
 Name=WhatsApp C++
 Comment=WhatsApp desktop wrapper
-Exec=$PREFIX/bin/whatsapp-cpp
-Icon=$ICON_DIR/whatsapp-cpp.png
+Exec=$FORGE_PREFIX/bin/whatsapp-cpp
+Icon=$FORGE_PREFIX/share/icons/whatsapp-cpp.png
 Terminal=false
 Categories=Network;InstantMessaging;
 StartupNotify=true
 EOF
 
-chmod 644 "$DESKTOP_DIR/whatsapp-cpp.desktop"
+chmod 644 "$DESKTOP_FILE"
 
 echo
-echo "==> WhatsApp C++ installed successfully!"
-echo "Executable: $PREFIX/bin/whatsapp-cpp"
-echo "Icon:       $ICON_DIR/whatsapp-cpp.png"
-echo "Desktop:    $DESKTOP_DIR/whatsapp-cpp.desktop"
+echo "==> WhatsApp C++ staged successfully!"
+echo "Executable: $FORGE_PREFIX/bin/whatsapp-cpp"
+echo "Icon:       $FORGE_PREFIX/share/icons/whatsapp-cpp.png"
+echo "Desktop:    $FORGE_PREFIX/share/applications/whatsapp-cpp.desktop"
