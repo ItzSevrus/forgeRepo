@@ -1,0 +1,25 @@
+[package]
+name = "forge"
+version = "0.3.1"
+description = "A lightweight community package manager for Arch Linux"
+license = "MIT"
+
+[source]
+url = "https://github.com/ItzSevrus/forgeRepo/releases/download/forge-v0.3.2/forge-v0.3.2.tar.gz"
+checksum = "sha256:3f0db641d43a0bd240ce60528ebeadf6fa997122e271654f80e9ee50aaa8f042"
+
+[build]
+script = "build.sh"
+command = "./build.sh"
+compilers = ["cc"]
+system_dependencies = ["make", "pkg-config"]
+
+[dependencies]
+runtime = []
+build = []
+
+[dependencies.system]
+apt = ["build-essential", "pkg-config", "libcurl4-openssl-dev", "libssl-dev"]
+pacman = ["base-devel", "pkgconf", "curl", "openssl"]
+dnf = ["gcc", "make", "pkgconf-pkg-config", "libcurl-devel", "openssl-devel"]
+zypper = ["gcc", "make", "pkg-config", "libcurl-devel", "libopenssl-devel"]
