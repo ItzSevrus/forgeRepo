@@ -1,0 +1,24 @@
+[package]
+name = "hello-world"
+version = "1.0.0"
+description = "A minimal example package"
+license = "MIT"
+
+[source]
+url = "https://github.com/YOUR-USERNAME/PATHTO-hello-world-1.0.0.tar.gz"
+checksum = "sha256:YOURCHECKSUMHERE"
+
+[build]
+script = "build.sh"
+command = "./build.sh"
+compilers = ["cc"]
+
+[dependencies]
+runtime = []
+build = []
+
+[dependencies.system]
+apt = ["build-essential"]
+pacman = ["base-devel"]
+dnf = ["gcc", "make"]
+zypper = ["gcc", "make"]
