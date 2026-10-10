@@ -1,0 +1,16 @@
+[package]
+name = "hello-world"
+version = "1.0.0"
+description = "A minimal example package"
+license = "MIT"
+
+[source]
+url = "https://example.com/hello-world-1.0.0.tar.gz"
+checksum = ""
+
+[build]
+script = "build.sh"
+
+[dependencies]
+runtime = []
+build = []
