@@ -5,7 +5,7 @@ description = "Developer toolkit for creating and managing Forge package reposit
 license = "MIT"
 
 [source]
-url = "https://github.com/ItzSevrus/forgeRepo/releases/download/forge-dev-v0.1.0/forge-dev-0.1.0.tar.gz"
+url = "https://github.com/ItzSevrus/forgeRepo/releases/download/forge-dev-v0.1.0/forge-dev-v0.1.0.tar.gz"
 checksum = "sha256:9c30983e22a14e485c07a8d5b294c7e4d37916331f39cd9ad0e936b5b591dd47"
 
 [build]
