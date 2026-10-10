@@ -1,0 +1,24 @@
+[package]
+name = "whatsapp-cpp"
+version = "1.0.0"
+description = "WhatsApp desktop wrapper built with Qt6 WebEngine"
+license = "MIT"
+
+[source]
+url = "https://github.com/ItzSevrus/forgeRepo/releases/download/whatsapp-v1.0.0/whatsapp-cpp-1.0.0.tar.gz"
+checksum = "sha256:656e26dd7186200eb9b414678a7fbf91428cb0b6a52cbfd352bc87f327968ef6 "
+
+[build]
+script = "build.sh"
+command = "./build.sh"
+compilers = ["c++"]
+
+[dependencies]
+runtime = []
+build = []
+
+[dependencies.system]
+apt = ["build-essential", "cmake", "qt6-base-dev", "qt6-webengine-dev"]
+pacman = ["base-devel", "cmake", "qt6-base", "qt6-webengine"]
+dnf = ["gcc-c++", "cmake", "qt6-qtbase-devel", "qt6-qtwebengine-devel"]
+zypper = ["gcc-c++", "cmake", "qt6-base-devel", "qt6-webengine-dev"]

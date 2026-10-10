@@ -1,0 +1,6 @@
+
+<RCC>
+    <qresource prefix="/icons">
+        <file alias="whatsapp-cpp.png">whatsapp-cpp.png</file>
+    </qresource>
+</RCC>
