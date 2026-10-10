@@ -14,11 +14,11 @@ command = "./build.sh"
 compilers = []
 
 [dependencies]
-runtime = ["github-cli"]
+runtime = ["gh"]
 build = []
 
 [dependencies.system]
 apt = ["git", "coreutils", "tar", "gh"]
-pacman = ["git", "coreutils", "tar", "gh"]
+pacman = ["git", "coreutils", "tar", "github-cli"]
 dnf = ["git", "coreutils", "tar", "gh"]
 zypper = ["git", "coreutils", "tar", "gh"]
