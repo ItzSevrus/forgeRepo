@@ -1,0 +1,377 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+VERSION="0.1.0"
+REPOSITORY_URL="https://github.com/ItzSevrus/forgeRepo"
+REPOSITORY_BRANCH="main"
+
+die() {
+    printf 'forge-dev: error: %s\n' "$*" >&2
+    exit 1
+}
+
+info() {
+    printf 'forge-dev: %s\n' "$*"
+}
+
+require() {
+    command -v "$1" >/dev/null 2>&1 ||
+        die "required command not found: $1"
+}
+
+usage() {
+    cat <<'EOF'
+forge-dev — Forge repository and application developer toolkit
+
+Usage:
+  forge-dev help
+  forge-dev version
+
+  forge-dev repo init [destination]
+
+  forge-dev app init <app_name> <version>
+  forge-dev app push <app_name> <version>
+
+Examples:
+  forge-dev repo init
+  forge-dev repo init ~/Projects/my-repository
+
+  forge-dev app init my-app 1.0.0
+  forge-dev app push my-app 1.0.0
+EOF
+}
+
+valid_name() {
+    [[ "$1" =~ ^[a-zA-Z0-9][a-zA-Z0-9._+-]*$ ]]
+}
+
+valid_version() {
+    [[ "$1" =~ ^[0-9][a-zA-Z0-9.+~-]*$ ]]
+}
+
+# Locate the Forge repository root by walking up from the current directory.
+find_repo_root() {
+    local dir
+
+    dir="$(pwd -P)"
+
+    while :; do
+        if [[ -f "$dir/repository.conf" &&
+              -d "$dir/packages" ]]; then
+            printf '%s\n' "$dir"
+            return 0
+        fi
+
+        [[ "$dir" != "/" ]] || break
+        dir="$(dirname "$dir")"
+    done
+
+    return 1
+}
+
+# ------------------------------------------------------------
+# forge-dev repo init
+# ------------------------------------------------------------
+
+repo_init() {
+    require git
+
+    local destination="${1:-}"
+    local temp checkout remote answer
+
+    if [[ -z "$destination" ]]; then
+        read -r -p "Destination directory [./my-forge-repo]: " destination
+        destination="${destination:-./my-forge-repo}"
+    fi
+
+    # Expand a leading ~/ without evaluating arbitrary shell input.
+    if [[ "$destination" == "~/"* ]]; then
+        destination="${HOME}/${destination#~/}"
+    fi
+
+    destination="$(realpath -m -- "$destination")"
+
+    [[ ! -e "$destination" ]] ||
+        [[ -d "$destination" && -z "$(ls -A "$destination")" ]] ||
+        die "destination must not exist or must be empty: $destination"
+
+    mkdir -p "$destination"
+
+    temp="$(mktemp -d "${TMPDIR:-/tmp}/forge-dev-repo.XXXXXX")"
+
+    cleanup() {
+        rm -rf -- "$temp"
+    }
+    trap cleanup RETURN
+
+    info "fetching the official Forge repository template..."
+
+    if ! git clone \
+        --depth 1 \
+        --branch "$REPOSITORY_BRANCH" \
+        "$REPOSITORY_URL" "$temp/source"; then
+        die "failed to clone $REPOSITORY_URL"
+    fi
+
+    [[ -d "$temp/source/template" ]] ||
+        die "the upstream repository does not contain template/"
+
+    cp -a "$temp/source/template/." "$destination/"
+
+    # Do not inherit the upstream repository's Git history.
+    git -C "$destination" init
+
+    printf '\n'
+    info "repository template copied to $destination"
+
+    printf '\n'
+    printf 'Configure a remote for YOUR repository.\n'
+    printf 'Example: https://github.com/your-user/your-repository.git\n'
+    read -r -p "Your Git remote URL (leave blank to configure later): " remote
+
+    if [[ -n "$remote" ]]; then
+        git -C "$destination" remote add origin "$remote"
+        info "configured origin: $remote"
+    else
+        info "no remote configured; app push will ask for one later"
+    fi
+
+    printf '\n'
+    info "repository initialized"
+    printf 'Next steps:\n'
+    printf '  cd %q\n' "$destination"
+    printf '  edit repository.conf\n'
+    printf '  forge-dev app init my-app 1.0.0\n'
+}
+
+# ------------------------------------------------------------
+# forge-dev app init
+# ------------------------------------------------------------
+
+app_init() {
+    [[ $# -eq 2 ]] ||
+        die "usage: forge-dev app init <app_name> <version>"
+
+    local name="$1"
+    local version="$2"
+    local root destination
+
+    valid_name "$name" || die "invalid application name: $name"
+    valid_version "$version" || die "invalid version: $version"
+
+    root="$(find_repo_root)" ||
+        die "not inside a Forge repository; run this from a repository directory"
+
+    destination="$root/packages/$name/v$version"
+
+    [[ ! -e "$destination" ]] ||
+        die "version already exists: packages/$name/v$version"
+
+    # Support repositories that use a version directory without the v prefix.
+    [[ ! -e "$root/packages/$name/$version" ]] ||
+        die "version already exists: packages/$name/$version"
+
+    mkdir -p "$destination"
+
+    cat > "$destination/forge.pkg" <<EOF
+[package]
+name = "$name"
+version = "$version"
+description = "Describe your application here"
+license = "MIT"
+
+[source]
+url = ""
+checksum = ""
+
+[build]
+script = "build.sh"
+command = "./build.sh"
+compilers = ["c++"]
+
+[dependencies]
+runtime = []
+build = []
+
+[dependencies.system]
+apt = ["build-essential", "cmake", "qt6-base-dev", "qt6-webengine-dev"]
+pacman = ["base-devel", "cmake", "qt6-base", "qt6-webengine"]
+dnf = ["gcc-c++", "cmake", "qt6-qtbase-devel", "qt6-qtwebengine-devel"]
+zypper = ["gcc-c++", "cmake", "qt6-base-devel", "qt6-webengine-dev"]
+EOF
+
+    cat > "$destination/build.sh" <<'EOF'
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+: "${FORGE_STAGE_DIR:?Forge staging directory is not set}"
+: "${FORGE_PREFIX:?Forge installation prefix is not set}"
+
+if [[ ! -f "$ROOT/CMakeLists.txt" ]]; then
+    echo "No CMakeLists.txt found in package source." >&2
+    echo "Add your application's CMake project before building." >&2
+    exit 1
+fi
+
+BUILD_DIR="$(mktemp -d "${TMPDIR:-/tmp}/forge-app-build.XXXXXX")"
+
+cleanup() {
+    rm -rf -- "$BUILD_DIR"
+}
+trap cleanup EXIT
+
+cmake -S "$ROOT" -B "$BUILD_DIR" \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX="$FORGE_PREFIX"
+
+cmake --build "$BUILD_DIR" --parallel
+
+DESTDIR="$FORGE_STAGE_DIR" \
+    cmake --install "$BUILD_DIR"
+EOF
+
+    chmod 755 "$destination/build.sh"
+
+    cat > "$destination/README.md" <<EOF
+# $name
+
+Version: $version
+
+## Development
+
+1. Add your application source files.
+2. Add a CMakeLists.txt that builds and installs your application.
+3. Update the description and dependencies in forge.pkg.
+4. Create a source archive and set its release URL and real SHA-256 checksum.
+5. Test the package before publishing it.
+
+The generated manifest is a starter. The source URL and checksum are
+intentionally empty until you publish the actual source archive.
+EOF
+
+    info "created packages/$name/v$version"
+    info "created forge.pkg, build.sh, and README.md"
+    info "add your source code and CMakeLists.txt before building"
+}
+
+# ------------------------------------------------------------
+# forge-dev app push
+# ------------------------------------------------------------
+
+app_push() {
+    [[ $# -eq 2 ]] ||
+        die "usage: forge-dev app push <app_name> <version>"
+
+    require git
+
+    local name="$1"
+    local version="$2"
+    local root package_dir remote message branch
+
+    valid_name "$name" || die "invalid application name: $name"
+    valid_version "$version" || die "invalid version: $version"
+
+    root="$(find_repo_root)" ||
+        die "not inside a Forge repository"
+
+    package_dir="packages/$name/v$version"
+
+    [[ -d "$root/$package_dir" ]] ||
+        die "package version does not exist: $package_dir"
+
+    [[ -f "$root/$package_dir/forge.pkg" ]] ||
+        die "missing $package_dir/forge.pkg"
+
+    git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1 ||
+        die "Forge repository has not been initialized as a Git repository"
+
+    remote="$(git -C "$root" remote get-url origin 2>/dev/null || true)"
+
+    if [[ -z "$remote" ]]; then
+        printf 'No Git remote named origin is configured.\n'
+        read -r -p "Enter YOUR repository remote URL: " remote
+
+        [[ -n "$remote" ]] || die "remote URL is required"
+        git -C "$root" remote add origin "$remote"
+    fi
+
+    printf '\n'
+    printf 'Repository: %s\n' "$root"
+    printf 'Remote:     %s\n' "$remote"
+    printf 'Package:    %s\n' "$package_dir"
+    printf '\n'
+
+    read -r -p "Commit message: " message
+    [[ -n "${message//[[:space:]]/}" ]] ||
+        die "commit message cannot be empty"
+
+    # Stage only the requested application version.
+    git -C "$root" add -- "$package_dir"
+
+    if git -C "$root" diff --cached --quiet -- "$package_dir"; then
+        die "no staged changes for $package_dir"
+    fi
+
+    printf '\nChanges to commit:\n'
+    git -C "$root" diff --cached --stat -- "$package_dir"
+
+    printf '\n'
+    read -r -p "Commit and push these changes? [y/N] " answer
+
+    [[ "$answer" == "y" || "$answer" == "Y" ]] ||
+        die "push cancelled; staged changes have been left in Git"
+
+    git -C "$root" commit -m "$message"
+
+    branch="$(git -C "$root" symbolic-ref --quiet --short HEAD || true)"
+    [[ -n "$branch" ]] || die "cannot push from a detached HEAD"
+
+    info "pushing branch $branch to origin..."
+
+    git -C "$root" push -u origin "$branch"
+
+    info "push completed"
+}
+
+# ------------------------------------------------------------
+# CLI dispatcher
+# ------------------------------------------------------------
+
+main() {
+    local command="${1:-help}"
+    shift || true
+
+    case "$command" in
+        help|-h|--help)
+            usage
+            ;;
+        version|--version)
+            printf 'forge-dev %s\n' "$VERSION"
+            ;;
+        repo)
+            [[ "${1:-}" == "init" ]] ||
+                die "usage: forge-dev repo init [destination]"
+            shift
+            repo_init "$@"
+            ;;
+        app)
+            local subcommand="${1:-}"
+            [[ -n "$subcommand" ]] || die "expected app init or app push"
+            shift
+
+            case "$subcommand" in
+                init) app_init "$@" ;;
+                push) app_push "$@" ;;
+                *) die "unknown app command: $subcommand" ;;
+            esac
+            ;;
+        *)
+            usage >&2
+            die "unknown command: $command"
+            ;;
+    esac
+}
+
+main "$@"

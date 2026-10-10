@@ -1,0 +1,24 @@
+[package]
+name = "forge-dev"
+version = "1.0.0"
+description = "Developer toolkit for creating and managing Forge package repositories"
+license = "MIT"
+
+[source]
+url = "https://github.com/ItzSevrus/forgeRepo/releases/download/forge-dev-v1.0.0/forge-dev-1.0.0.tar.gz"
+checksum = "sha256:01b63ca1e1f404cbd8c7ea9b303c5239dfb5f779e56bfbfa6b612397c864e08e"
+
+[build]
+script = "build.sh"
+command = "./build.sh"
+compilers = []
+
+[dependencies]
+runtime = []
+build = []
+
+[dependencies.system]
+apt = ["git", "coreutils", "tar"]
+pacman = ["git", "coreutils", "tar"]
+dnf = ["git", "coreutils", "tar"]
+zypper = ["git", "coreutils", "tar"]
