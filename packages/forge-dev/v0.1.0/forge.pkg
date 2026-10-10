@@ -14,7 +14,7 @@ command = "./build.sh"
 compilers = []
 
 [dependencies]
-runtime = ["gh"]
+runtime = []
 build = []
 
 [dependencies.system]
