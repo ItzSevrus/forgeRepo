@@ -6,7 +6,7 @@ license = "MIT"
 
 [source]
 url = "https://github.com/ItzSevrus/forgeRepo/releases/download/whatsapp-v1.0.0/whatsapp-cpp-1.0.0.tar.gz"
-checksum = "sha256:656e26dd7186200eb9b414678a7fbf91428cb0b6a52cbfd352bc87f327968ef6 "
+checksum = "sha256:656e26dd7186200eb9b414678a7fbf91428cb0b6a52cbfd352bc87f327968ef6"
 
 [build]
 script = "build.sh"
