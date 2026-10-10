@@ -73,18 +73,28 @@ find_repo_root() {
 # forge-dev repo init
 # ------------------------------------------------------------
 
+
 repo_init() {
     require git
+    require gh
+    require realpath
+    require cp
+    require basename
 
     local destination="${1:-}"
-    local temp checkout remote answer
+    local temp repo_name visibility answer
+
+    # GitHub CLI authentication is required.
+    if ! gh auth status >/dev/null 2>&1; then
+        die "GitHub CLI is not authenticated. Run: gh auth login"
+    fi
 
     if [[ -z "$destination" ]]; then
         read -r -p "Destination directory [./my-forge-repo]: " destination
         destination="${destination:-./my-forge-repo}"
     fi
 
-    # Expand a leading ~/ without evaluating arbitrary shell input.
+    # Expand ~/ safely.
     if [[ "$destination" == "~/"* ]]; then
         destination="${HOME}/${destination#~/}"
     fi
@@ -95,7 +105,28 @@ repo_init() {
         [[ -d "$destination" && -z "$(ls -A "$destination")" ]] ||
         die "destination must not exist or must be empty: $destination"
 
-    mkdir -p "$destination"
+    repo_name="$(basename -- "$destination")"
+
+    printf '\n'
+    read -r -p "GitHub repository name [${repo_name}]: " answer
+    repo_name="${answer:-$repo_name}"
+
+    printf '\nRepository visibility:\n'
+    printf '  1) Public\n'
+    printf '  2) Private\n'
+    read -r -p "Choose visibility [2]: " answer
+
+    case "${answer:-2}" in
+        1|public|Public)
+            visibility="public"
+            ;;
+        2|private|Private)
+            visibility="private"
+            ;;
+        *)
+            die "invalid visibility choice"
+            ;;
+    esac
 
     temp="$(mktemp -d "${TMPDIR:-/tmp}/forge-dev-repo.XXXXXX")"
 
@@ -116,32 +147,47 @@ repo_init() {
     [[ -d "$temp/source/template" ]] ||
         die "the upstream repository does not contain template/"
 
+    mkdir -p "$destination"
     cp -a "$temp/source/template/." "$destination/"
 
-    # Do not inherit the upstream repository's Git history.
+    # Initialize a clean repository with no upstream history.
     git -C "$destination" init
+    git -C "$destination" branch -M main
+
+    info "creating the initial commit..."
+
+    git -C "$destination" add -A
+
+    git -C "$destination" \
+        -c user.name="forge-dev" \
+        -c user.email="forge-dev@users.noreply.github.com" \
+        commit -m "Initial Forge repository"
 
     printf '\n'
-    info "repository template copied to $destination"
+    info "creating GitHub repository: $repo_name"
 
-    printf '\n'
-    printf 'Configure a remote for YOUR repository.\n'
-    printf 'Example: https://github.com/your-user/your-repository.git\n'
-    read -r -p "Your Git remote URL (leave blank to configure later): " remote
-
-    if [[ -n "$remote" ]]; then
-        git -C "$destination" remote add origin "$remote"
-        info "configured origin: $remote"
-    else
-        info "no remote configured; app push will ask for one later"
+    # Create the GitHub repository, set origin, and push the initial commit.
+    if ! gh repo create "$repo_name" \
+        "--$visibility" \
+        --source "$destination" \
+        --remote origin \
+        --push; then
+        die "GitHub repository creation or initial push failed. Your local files remain at: $destination"
     fi
 
     printf '\n'
-    info "repository initialized"
-    printf 'Next steps:\n'
+    info "GitHub repository created successfully!"
+
+    printf 'Local path: %s\n' "$destination"
+    printf 'GitHub URL: '
+
+    git -C "$destination" remote get-url origin
+
+    printf '\nNext steps:\n'
     printf '  cd %q\n' "$destination"
     printf '  edit repository.conf\n'
     printf '  forge-dev app init my-app 1.0.0\n'
+    printf '  forge-dev app push my-app 1.0.0\n'
 }
 
 # ------------------------------------------------------------
