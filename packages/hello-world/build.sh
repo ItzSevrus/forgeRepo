@@ -1,4 +1,8 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
-printf '%s\n' "Hello from Forge's build script!"
+: "${FORGE_STAGE_DIR:?Forge staging directory is not set}"
+: "${FORGE_PREFIX:?Forge installation prefix is not set}"
+
+install -Dm755 hello \
+    "$FORGE_STAGE_DIR$FORGE_PREFIX/bin/hello"

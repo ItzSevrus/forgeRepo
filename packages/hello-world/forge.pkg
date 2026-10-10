@@ -5,8 +5,8 @@ description = "A minimal example package"
 license = "MIT"
 
 [source]
-url = "https://example.com/hello-world-1.0.0.tar.gz"
-checksum = ""
+url = "https://REPLACE-WITH-REAL-URL/hello-world-1.0.0.tar.gz"
+checksum = "sha256:REPLACE_WITH_64_HEX_DIGITS"
 
 [build]
 script = "build.sh"
