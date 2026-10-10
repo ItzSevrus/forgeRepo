@@ -130,18 +130,15 @@ repo_init() {
 
     temp="$(mktemp -d "${TMPDIR:-/tmp}/forge-dev-repo.XXXXXX")"
 
-    cleanup() {
-        rm -rf -- "$temp"
-    }
-    trap cleanup RETURN
+    trap "rm -rf -- '$temp'" RETURN
 
     info "fetching the official Forge repository template..."
 
     if ! git clone \
         --depth 1 \
-        --branch master \
+        --branch "$REPOSITORY_BRANCH" \
         "$REPOSITORY_URL" "$temp/source"; then
-        die "failed to clone $REPOSITORY_URL (branch: master)"
+        die "failed to clone $REPOSITORY_URL"
     fi
 
     [[ -d "$temp/source/template" ]] ||
