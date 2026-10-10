@@ -19,6 +19,6 @@ build = []
 
 [dependencies.system]
 apt = ["git", "coreutils", "tar", "gh"]
-pacman = ["git", "coreutils", "tar", "github-cli"]
+pacman = ["git", "coreutils", "tar"]
 dnf = ["git", "coreutils", "tar", "gh"]
 zypper = ["git", "coreutils", "tar", "gh"]
