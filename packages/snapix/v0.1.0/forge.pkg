@@ -1,0 +1,24 @@
+[package]
+name = "snapix"
+version = "0.1.0"
+description = "A lightweight screenshot utility for Hyprland and Wayland"
+license = "MIT"
+
+[source]
+url = "https://github.com/ItzSevrus/forgeRepo/releases/download/snapix-v0.1.0/snapix-v0.1.0.tar.gz"
+checksum = "sha256:4e4b55df937d8c0cf3d34ea43809770f59f33937291a141dcd203c23896825d1"
+
+[build]
+script = "build.sh"
+command = "./build.sh"
+compilers = ["c++"]
+
+[dependencies]
+runtime = []
+build = []
+
+[dependencies.system]
+apt = ["build-essential", "cmake", "qt6-base-dev", "qt6-webengine-dev"]
+pacman = ["base-devel", "cmake", "qt6-base", "qt6-webengine"]
+dnf = ["gcc-c++", "cmake", "qt6-qtbase-devel", "qt6-qtwebengine-devel"]
+zypper = ["gcc-c++", "cmake", "qt6-base-devel", "qt6-webengine-dev"]
