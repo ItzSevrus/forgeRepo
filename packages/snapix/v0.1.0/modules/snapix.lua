@@ -1,25 +1,12 @@
+-- Snapix screenshot keybindings
+-- Loaded from ~/.config/hypr/hyprland.lua
 
--- Snapix: screenshot keybindings for Hyprland
--- Requires Hyprland 0.55+ Lua configuration.
+local snapix = "/home/sahil/.local/bin/snapix"
 
-local snapix = "snapix"
+hl.bind("Print", hl.dsp.exec_cmd(snapix .. " --full"))
 
--- Print: full-screen screenshot
-hl.bind("PRINT", function()
-    hl.exec_cmd(snapix .. " --full")
-end)
+hl.bind("CTRL + Print", hl.dsp.exec_cmd(snapix .. " --full --copy"))
 
--- Ctrl + Print: full-screen screenshot and copy
-hl.bind("CTRL + PRINT", function()
-    hl.exec_cmd(snapix .. " --full --copy")
-end)
+hl.bind("CTRL + SHIFT + Print", hl.dsp.exec_cmd(snapix .. " --select --copy"))
 
--- Ctrl + Shift + Print: select region and copy
-hl.bind("CTRL + SHIFT + PRINT", function()
-    hl.exec_cmd(snapix .. " --select --copy")
-end)
-
--- Shift + Print: select region and save
-hl.bind("SHIFT + PRINT", function()
-    hl.exec_cmd(snapix .. " --select")
-end)
+hl.bind("SHIFT + Print", hl.dsp.exec_cmd(snapix .. " --select"))
