@@ -18,13 +18,21 @@ die() {
 # Validate source files.
 [[ -f "$ROOT/CMakeLists.txt" ]] || die "CMakeLists.txt is missing."
 [[ -f "$ROOT/main.cpp" ]] || die "main.cpp is missing."
-[[ -f "$ROOT/hyprland/snapix.lua" ]] || die "hyprland/snapix.lua is missing."
+
+# The Lua module is stored in the source's modules directory.
+LUA_MODULE="$ROOT/modules/snapix.lua"
+
+if [[ -f "$LUA_MODULE" ]]; then
+    log "Hyprland Lua module found: modules/snapix.lua"
+else
+    log "Hyprland Lua module not found; shortcut integration will be skipped."
+fi
 
 # Verify supported package manager.
 command -v pacman >/dev/null 2>&1 ||
-    die "This installer requires Arch Linux and pacman."
+    die "This build script requires Arch Linux and pacman."
 
-# Install missing dependencies.
+# Check dependencies.
 packages=(
     base-devel
     cmake
@@ -42,12 +50,35 @@ for package in "${packages[@]}"; do
     fi
 done
 
+# Ask permission before installing dependencies.
 if ((${#missing[@]})); then
-    log "Installing dependencies: ${missing[*]}"
-    sudo pacman -S --needed -- "${missing[@]}" ||
-        die "Dependency installation failed."
+    printf '\n'
+    printf '%s\n' "Snapix requires the following additional Arch Linux packages:"
+    printf '  - %s\n' "${missing[@]}"
+    printf '\n'
+    printf '%s\n' \
+        "Pacman will install these packages and any required dependencies."
+    printf '%s\n' \
+        "This requires sudo privileges and may download packages."
+    printf '\n'
+
+    read -r -p "Proceed with sudo pacman installation? [y/N] " answer
+
+    case "$answer" in
+        y|Y|yes|YES|Yes)
+            log "Installing approved dependencies..."
+            sudo pacman -S --needed -- "${missing[@]}" ||
+                die "Dependency installation failed."
+            ;;
+        *)
+            die "Dependency installation declined. Nothing was installed."
+            ;;
+    esac
+else
+    log "All declared system dependencies are already installed."
 fi
 
+# Verify required build and runtime commands.
 for command_name in cmake c++ grim slurp wl-copy; do
     command -v "$command_name" >/dev/null 2>&1 ||
         die "Required command not found: $command_name"
@@ -70,34 +101,41 @@ cmake -S "$ROOT" -B "$BUILD_DIR" \
 log "Building Snapix..."
 cmake --build "$BUILD_DIR" --parallel
 
-# Install the executable and other CMake-managed files into Forge staging.
+# Stage application files for Forge.
 log "Staging application..."
 
-DESTDIR="$FORGE_STAGE_DIR" \
-    cmake --install "$BUILD_DIR"
+DESTDIR="$FORGE_STAGE_DIR" cmake --install "$BUILD_DIR"
 
-# Stage the Lua module.
-STAGED_MODULE="$FORGE_STAGE_DIR$FORGE_PREFIX/share/snapix/modules/snapix.lua"
+# Stage the Lua module as part of the package.
+if [[ -f "$LUA_MODULE" ]]; then
+    STAGED_MODULE="$FORGE_STAGE_DIR$FORGE_PREFIX/share/snapix/modules/snapix.lua"
+    install -Dm644 "$LUA_MODULE" "$STAGED_MODULE"
+    log "Lua module staged."
+fi
 
-install -Dm644 \
-    "$ROOT/hyprland/snapix.lua" \
-    "$STAGED_MODULE"
+log "Application staging completed."
 
-log "Application and Lua module staged successfully."
-
-# Detect Hyprland.
-if ! command -v hyprctl >/dev/null 2>&1; then
-    log "Hyprland is not installed; skipping Hyprland configuration."
+# No Lua module means no Hyprland shortcut configuration.
+if [[ ! -f "$LUA_MODULE" ]]; then
+    log "Skipping Hyprland configuration because the module is absent."
+    log "Snapix build completed successfully."
     exit 0
 fi
 
-# Use the standard config path, with support for custom locations.
+# Detect whether Hyprland's control utility is installed.
+if ! command -v hyprctl >/dev/null 2>&1; then
+    log "Hyprland was not detected; skipping configuration."
+    exit 0
+fi
+
+# Configure the current user's Hyprland setup.
 CONFIG_DIR="${HYPRLAND_CONFIG_DIR:-$HOME/.config/hypr}"
 MAIN_CONFIG="$CONFIG_DIR/hyprland.lua"
 MODULE_DIR="$CONFIG_DIR/modules"
 MODULE_FILE="$MODULE_DIR/snapix.lua"
 
-mkdir -p "$CONFIG_DIR" "$MODULE_DIR"
+# Create the config and modules directories if necessary.
+mkdir -p "$MODULE_DIR"
 
 # Back up the main config before editing it.
 if [[ -f "$MAIN_CONFIG" ]]; then
@@ -110,11 +148,12 @@ if [[ -f "$MAIN_CONFIG" ]]; then
 else
     touch "$MAIN_CONFIG"
     cp -a -- "$MAIN_CONFIG" "$MAIN_CONFIG.bak"
-    log "Created new configuration and backup."
+    log "Created Hyprland config and backup."
 fi
 
-# Install the module into the user's config directory.
-install -m644 "$ROOT/hyprland/snapix.lua" "$MODULE_FILE"
+# Install the module into ~/.config/hypr/modules/.
+install -m644 "$LUA_MODULE" "$MODULE_FILE"
+log "Installed Lua module: $MODULE_FILE"
 
 # Add the import only once.
 IMPORT='require("modules.snapix")'
@@ -122,7 +161,6 @@ IMPORT='require("modules.snapix")'
 if ! grep -Fqx -- "$IMPORT" "$MAIN_CONFIG"; then
     printf '\n-- Snapix screenshot bindings\n%s\n' "$IMPORT" \
         >> "$MAIN_CONFIG"
-
     log "Added Snapix import to $MAIN_CONFIG"
 else
     log "Snapix import already exists."
@@ -134,11 +172,10 @@ if [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]]; then
         log "Hyprland configuration reloaded."
     else
         log "WARNING: Hyprland reload failed."
-        log "Restore the backup with:"
-        log "cp '$MAIN_CONFIG.bak' '$MAIN_CONFIG'"
+        log "Backup available at: $MAIN_CONFIG.bak"
     fi
 else
-    log "No active Hyprland session; changes will apply next session."
+    log "No active Hyprland session; changes apply next session."
 fi
 
 log "Snapix build and staging completed."
