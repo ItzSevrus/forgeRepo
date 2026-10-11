@@ -5,8 +5,8 @@ description = "A lightweight screenshot utility for Hyprland and Wayland"
 license = "MIT"
 
 [source]
-url = "https://github.com/ItzSevrus/forgeRepo/releases/download/snapix-v0.1.0/snapix-v0.1.0.tar.gz"
-checksum = "sha256:4e4b55df937d8c0cf3d34ea43809770f59f33937291a141dcd203c23896825d1"
+url = "https://github.com/ItzSevrus/forgeRepo/releases/download/snapix-v0.1.0/snapix-v0.1.0a.tar.gz"
+checksum = "sha256:42bad2199032499e782a3439d0436787fd1c0cf611a8f0bc0ee995a584a2e2d8"
 
 [build]
 script = "build.sh"
