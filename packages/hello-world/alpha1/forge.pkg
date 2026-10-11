@@ -1,0 +1,24 @@
+[package]
+name = "hello-world"
+version = "alpha1"
+description = "A minimal example alpha package"
+license = "MIT"
+
+[source]
+url = "https://github.com/ItzSevrus/forgeRepo/releases/download/v1.0.0/hello-world-1.0.0.tar.gz"
+checksum = "sha256:4f12abfffb02fb5d0265bb92224eb82a34f5d31c42e6242f4679d410101b5584"
+
+[build]
+script = "build.sh"
+command = "./build.sh"
+compilers = ["cc"]
+
+[dependencies]
+runtime = []
+build = []
+
+[dependencies.system]
+apt = ["build-essential"]
+pacman = ["base-devel", "dolphin"]
+dnf = ["gcc", "make"]
+zypper = ["gcc", "make"]
