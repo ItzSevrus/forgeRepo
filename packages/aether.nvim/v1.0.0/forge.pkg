@@ -5,8 +5,8 @@ description = "A personalized Neovim IDE with terminal, file explorer, C/C++ and
 license = "MIT"
 
 [source]
-url = "https://github.com/ItzSevrus/forgeRepo/releases/download/aether.nvim-v1.0.0/aether-nvim-v1.0.tar.gz"
-checksum = "sha256:133ec782ba98273149cdb02af226b3282d1fa0ecef26ac3283566d61d86f9514"
+url = "https://github.com/ItzSevrus/forgeRepo/releases/download/aether.nvim-v1.0.0/ather-nvim-v1.0.tar.gz"
+checksum = "sha256:287bd675f88233c2bc875b4a0a2434ae2337da9add82514b3b5717788384988e"
 
 [build]
 script = "build.sh"

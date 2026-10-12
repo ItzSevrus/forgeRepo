@@ -5,28 +5,74 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 : "${FORGE_STAGE_DIR:?Forge staging directory is not set}"
 : "${FORGE_PREFIX:?Forge installation prefix is not set}"
-: "${HOME:?HOME is not set}"
 
 CONFIG_SOURCE="$ROOT/nvim"
+LAUNCHER_SOURCE="$ROOT/aether-nvim"
+ICON_SOURCE="$ROOT/aether-nvim.png"
+DESKTOP_SOURCE="$ROOT/aether-nvim.desktop"
 
-if [[ ! -d "$CONFIG_SOURCE" ]]; then
-    echo "Error: Neovim configuration directory not found: $CONFIG_SOURCE" >&2
+# Validate package sources.
+for path in "$CONFIG_SOURCE" "$LAUNCHER_SOURCE" \
+            "$ICON_SOURCE" "$DESKTOP_SOURCE"; do
+    if [[ ! -e "$path" ]]; then
+        echo "Error: required package file not found: $path" >&2
+        exit 1
+    fi
+done
+
+if [[ ! -f "$CONFIG_SOURCE/init.lua" ]]; then
+    echo "Error: nvim/init.lua is missing." >&2
     exit 1
 fi
 
-# Forge installs staged files relative to FORGE_PREFIX.
-# Stage the config under .config/nvim relative to the user's home.
-TARGET="$FORGE_STAGE_DIR$FORGE_PREFIX/../.config/nvim"
+# Forge installs these paths relative to FORGE_PREFIX.
+STAGE_PREFIX="$FORGE_STAGE_DIR$FORGE_PREFIX"
 
-echo "==> Staging Aether.nvim configuration..."
+CONFIG_TARGET="$STAGE_PREFIX/config/nvim"
+LAUNCHER_TARGET="$STAGE_PREFIX/bin/aether-nvim"
+ICON_TARGET="$STAGE_PREFIX/share/icons/hicolor/512x512/apps/aether-nvim.png"
+DESKTOP_TARGET="$STAGE_PREFIX/share/applications/aether-nvim.desktop"
 
-mkdir -p "$TARGET"
-cp -a "$CONFIG_SOURCE/." "$TARGET/"
+echo "==> Staging Aether.nvim..."
 
-if [[ ! -f "$TARGET/init.lua" ]]; then
-    echo "Error: init.lua was not staged correctly." >&2
+# 1. Neovim configuration.
+echo "==> Installing Neovim configuration..."
+mkdir -p "$CONFIG_TARGET"
+cp -a "$CONFIG_SOURCE/." "$CONFIG_TARGET/"
+
+# 2. Dedicated launcher.
+echo "==> Installing launcher..."
+install -Dm755 "$LAUNCHER_SOURCE" "$LAUNCHER_TARGET"
+
+# 3. Application icon.
+echo "==> Installing application icon..."
+install -Dm644 "$ICON_SOURCE" "$ICON_TARGET"
+
+# 4. Desktop entry.
+echo "==> Installing desktop entry..."
+install -Dm644 "$DESKTOP_SOURCE" "$DESKTOP_TARGET"
+
+# Verify staged files.
+for path in \
+    "$CONFIG_TARGET/init.lua" \
+    "$LAUNCHER_TARGET" \
+    "$ICON_TARGET" \
+    "$DESKTOP_TARGET"; do
+    if [[ ! -f "$path" ]]; then
+        echo "Error: staging verification failed: $path" >&2
+        exit 1
+    fi
+done
+
+if [[ ! -x "$LAUNCHER_TARGET" ]]; then
+    echo "Error: staged launcher is not executable." >&2
     exit 1
 fi
 
-echo "==> Build completed successfully."
-echo "    Staged configuration: $TARGET"
+echo
+echo "==> Aether.nvim staged successfully!"
+echo "    Configuration: $CONFIG_TARGET"
+echo "    Launcher:      $LAUNCHER_TARGET"
+echo "    Icon:           $ICON_TARGET"
+echo "    Desktop entry:  $DESKTOP_TARGET"
+
