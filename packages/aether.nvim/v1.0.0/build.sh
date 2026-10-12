@@ -5,19 +5,18 @@ ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
 : "${FORGE_STAGE_DIR:?Forge staging directory is not set}"
 : "${FORGE_PREFIX:?Forge installation prefix is not set}"
+: "${HOME:?HOME is not set}"
 
 CONFIG_SOURCE="$ROOT/nvim"
 
 if [[ ! -d "$CONFIG_SOURCE" ]]; then
     echo "Error: Neovim configuration directory not found: $CONFIG_SOURCE" >&2
-    echo "Place your nvim/ configuration directory beside build.sh." >&2
     exit 1
 fi
 
-# Install the configuration directly into the user's .config directory.
-: "${HOME:?HOME is not set}"
-
-TARGET="$FORGE_STAGE_DIR$HOME/.config/nvim"
+# Forge installs staged files relative to FORGE_PREFIX.
+# Stage the config under .config/nvim relative to the user's home.
+TARGET="$FORGE_STAGE_DIR$FORGE_PREFIX/../.config/nvim"
 
 echo "==> Staging Aether.nvim configuration..."
 
