@@ -14,14 +14,14 @@ if [[ ! -d "$CONFIG_SOURCE" ]]; then
     exit 1
 fi
 
-# Stage the configuration under .config/nvim.
-TARGET="$FORGE_STAGE_DIR$FORGE_PREFIX/.config/nvim"
+# Install the configuration directly into the user's .config directory.
+: "${HOME:?HOME is not set}"
+
+TARGET="$FORGE_STAGE_DIR$HOME/.config/nvim"
 
 echo "==> Staging Aether.nvim configuration..."
 
 mkdir -p "$TARGET"
-
-# Copy all configuration files, including hidden files.
 cp -a "$CONFIG_SOURCE/." "$TARGET/"
 
 if [[ ! -f "$TARGET/init.lua" ]]; then
