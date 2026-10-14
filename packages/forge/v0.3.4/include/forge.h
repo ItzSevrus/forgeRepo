@@ -8,7 +8,7 @@
 #include <sys/types.h>
 #include <stdbool.h>
 
-#define FORGE_VERSION "0.3.3"
+#define FORGE_VERSION "0.3.4"
 #define FORGE_MAX_REPOS 256
 #define FORGE_MAX_NAME 64
 #define FORGE_MAX_URL 2048
