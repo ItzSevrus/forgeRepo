@@ -5,8 +5,8 @@ description = "A lightweight community package manager for Arch Linux"
 license = "MIT"
 
 [source]
-url = "https://github.com/ItzSevrus/forgeRepo/releases/download/forge-v0.3.3/forge-v0.3.3.tar.gz"
-checksum = "sha256:6dc83d7a152afb3b8fc8c9361861adf9c86b7b2e501f43faabbedd87f39745c5"
+url = "https://github.com/ItzSevrus/forgeRepo/releases/download/forge-v0.3.4/forge-v0.3.4.tar.gz"
+checksum = "sha256:f72a656923687bd223e993f8ae86c072347c99eb526d853a0366da67243bfb46"
 
 [build]
 script = "build.sh"
